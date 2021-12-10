@@ -1,0 +1,23 @@
+[package]
+name = "atmega328p-blinking-lights"
+version = "0.1.0"
+authors = ["monoper <monoper>"]
+edition = "2018"
+
+[dependencies]
+# A panic handler is needed.  This is a crate with the most basic one.
+panic-halt = "0.2.0"
+
+[dependencies.arduino-uno]
+git = "https://github.com/Rahix/avr-hal"
+rev = "885e8ec6d6d2fe34f26a1e2697a99f41092f0985"
+
+[dependencies.avr-device]
+version = "0.3.0"
+features = ["atmega328p"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

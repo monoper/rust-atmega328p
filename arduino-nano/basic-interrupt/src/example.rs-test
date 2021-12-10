@@ -1,0 +1,66 @@
+#![no_std]
+#![feature(abi_avr_interrupt)]
+#![no_main]
+
+use atmega328p_hal::port::mode::Floating;
+use atmega328p_hal::port::mode::Input;
+use atmega328p_hal::port::mode::Output;
+use atmega328p_hal::port::portb::PB0;
+use atmega328p_hal::port::portc::PC5;
+use atmega328p_hal::prelude::*;
+use avr_device::interrupt::Mutex;
+use core::cell::RefCell;
+
+use panic_halt as _;
+
+static TOGGLE_SWITCH: Mutex<RefCell<Option<PB0<Input<Floating>>>>> = Mutex::new(RefCell::new(None));
+static LED_RIGHT: Mutex<RefCell<Option<PC5<Output>>>> = Mutex::new(RefCell::new(None));
+
+#[avr_device::entry]
+fn main() -> ! {
+    let peripherals = avr_device::atmega328p::Peripherals::take().unwrap();
+
+    peripherals.EXINT.pcicr.write(|w| w.pcie().bits(0x01));
+    peripherals.EXINT.pcmsk0.write(|w| w.pcint().bits(0x01));
+
+    let mut portb = peripherals.PORTB.split();
+    let mut portc = peripherals.PORTC.split();
+
+    let mut led_left = portc.pc4.into_output(&mut portc.ddr);
+    let led_right = portc.pc5.into_output(&mut portc.ddr);
+
+    let toggle_switch = portb.pb0.into_floating_input(&mut portb.ddr);
+
+    avr_device::interrupt::free(|cs| {
+        LED_RIGHT.borrow(cs).replace(Some(led_right));
+        TOGGLE_SWITCH.borrow(cs).replace(Some(toggle_switch));
+    });
+
+    unsafe {
+        avr_device::interrupt::enable();
+    }
+
+    loop {
+        led_left.toggle().void_unwrap();
+
+        for _ in 1..100000 {
+            avr_device::asm::nop();
+        }
+    }
+}
+
+#[avr_device::interrupt(atmega328p)]
+fn PCINT0() {
+    avr_device::interrupt::free(|cs| {
+        let toggle_switch = TOGGLE_SWITCH.borrow(cs).borrow();
+        let toggle_switch = toggle_switch.as_ref().unwrap();
+        let mut led_right = LED_RIGHT.borrow(cs).borrow_mut();
+        let led_right = led_right.as_mut().unwrap();
+
+        if toggle_switch.is_low().void_unwrap() {
+            led_right.set_high().void_unwrap();
+        } else {
+            led_right.set_low().void_unwrap();
+        }
+    });
+}

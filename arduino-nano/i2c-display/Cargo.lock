@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "arduino-nano-i2c"
+name = "arduino-nano-i2c-display"
 version = "0.1.0"
 dependencies = [
  "arduino-hal",

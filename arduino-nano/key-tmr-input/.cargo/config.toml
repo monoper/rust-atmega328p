@@ -2,7 +2,8 @@
 target = "avr-specs/avr-atmega328p.json"
 
 [target.'cfg(target_arch = "avr")']
-runner = "ravedude uno -P/dev/tty.usbserial-141440"
+runner = "ravedude uno -P/dev/tty.usbserial-14110"
 
 [unstable]
 build-std = ["core"]
+build-std-features = ["compiler-builtins-mangled-names"]
